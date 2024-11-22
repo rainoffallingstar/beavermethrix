@@ -244,7 +244,37 @@ read_bdg = function(bdg, col_list = NULL, genome = NULL, verbose = TRUE,
   }
   data.table::setkey(x = genome, "chr", "start")
 
+  # deal with situation when genome width > 2
+  if (genome$width[1] > 2) {
+  
+    message("Width > 2, a mapping of the reads is performed ...")
+    loc_list <- list()
+    for (i in seq_len(nrow(genome))) {
+      message(paste("processing",i))
+      start_search <- genome$start[i]
+      chr_search <- genome$chr[i]
+      end_search <- start_search + genome$width[1] - 1
+      temp_loc = bdg_dat[chr == chr_search  & start >= start_search & start <= end_search]
+      if (nrow(temp_loc) == 0) {
+        next
+      } else {
+        temp_loc <- temp_loc[, .(M = sum(M, na.rm = TRUE), U = sum(U, na.rm = TRUE),cov = mean(cov,na.rm = T))]
+        temp_loc[, beta := M / (U+M) ]
+        temp_loc[, chr := chr_search]
+        temp_loc[, start := start_search]
+        loc_list[[i]] <- temp_loc
+      }
+    }
+  }
+  if (length(loc_list) > 0) {
+    loc_list <- Filter(Negate(is.null), loc_list)
+    bdg_dat <- rbindlist(loc_list, use.names = TRUE, fill = TRUE) 
+    bdg_dat <- unique(bdg_dat, by = c("chr", "start"))
+  }
+  
+  
   missing_cpgs = genome[!bdg_dat[, list(chr, start)], on = c("chr", "start")]
+  missing_cpgs = unique(missing_cpgs, by = c("chr", "start"))
 
   # Write missing CpGs to an op_dir
   if (!is.null(file_uncovered) && nrow(missing_cpgs) > 0) {
