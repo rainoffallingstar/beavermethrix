@@ -265,18 +265,13 @@ read_bdg = function(bdg, col_list = NULL, genome = NULL, verbose = TRUE,
         loc_list[[i]] <- temp_loc
       }
     }
-  }
-  if (length(loc_list) > 0) {
+    if (length(loc_list) > 0) {
     loc_list <- Filter(Negate(is.null), loc_list)
     bdg_dat <- rbindlist(loc_list, use.names = TRUE, fill = TRUE) 
-    #bdg_dat <- unique(bdg_dat, by = c("chr", "start"))
   }
-  
-  
+  }
   missing_cpgs = genome[!bdg_dat[, list(chr, start)], on = c("chr", "start")]
-  #missing_cpgs = unique(missing_cpgs, by = c("chr", "start"))
-
-  # Write missing CpGs to an op_dir
+   # Write missing CpGs to an op_dir
   if (!is.null(file_uncovered) && nrow(missing_cpgs) > 0) {
     fwrite(x = missing_cpgs, file = paste0(file_uncovered,
                                            gsub("\\.[[:alnum:]]+(\\.gz)?$",
